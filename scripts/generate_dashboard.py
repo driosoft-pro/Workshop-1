@@ -12,7 +12,7 @@ PROJECT = Path(__file__).parent.parent
 OUTPUT = PROJECT / "dashboard_recruitment.pbix"
 
 # PostgreSQL connection settings
-DB_HOST = "localhost"
+DB_HOST = "192.168.122.1"
 DB_PORT = 5432
 DB_NAME = "recruitment_dw"
 DB_USER = "recruitment"

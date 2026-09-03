@@ -115,6 +115,81 @@ The business process analyzed is **Candidate Recruitment Evaluation** — the ev
 | **dim_candidate** | Candidate profile context | candidate_key, first_name, last_name, email, country, yoe, seniority | R3, R4 |
 | **dim_assessment** | Assessment scoring context | assessment_key, code_challenge_score, technical_interview_score | R5 |
 
+### Dimension Details
+
+#### dim_date — Temporal Dimension
+
+**Why it exists:** Recruitment patterns are highly seasonal. Understanding when candidates apply and when hiring decisions are made is critical for resource planning and optimizing recruitment timing.
+
+**Business requirement:** R1 — Hiring Trends
+
+**Attributes:**
+- `date_key` — Surrogate key for joining with the fact table
+- `full_date` — Complete date in YYYY-MM-DD format
+- `year`, `quarter`, `month` — Numeric temporal components for aggregation
+- `month_name` — Human-readable month name for reports
+- `day_of_week` — Day of the week (e.g., Monday, Tuesday)
+
+**How it is used:**
+- Group applications by month/quarter/year to identify seasonal hiring patterns
+- Compare hiring rates across different time periods
+- Detect trends in recruitment activity over the years (2018–2022)
+- Example query: "Which months have the highest hiring rate?"
+
+#### dim_technology — Technology Dimension
+
+**Why it exists:** The company recruits for multiple technology roles (Development, QA, Security, DevOps, etc.). Understanding which technologies have the best hiring outcomes helps focus recruitment efforts on high-performing profiles.
+
+**Business requirement:** R2 — Technology Analysis
+
+**Attributes:**
+- `technology_key` — Surrogate key
+- `technology_name` — Technology domain name (e.g., "Development - Backend", "QA Automation", "Security")
+
+**How it is used:**
+- Compare hiring rates across different technology domains
+- Identify which technologies produce the most hired candidates
+- Allocate recruitment resources to high-performing technology areas
+- Example query: "Which technology has the highest proportion of hired candidates?"
+
+#### dim_candidate — Candidate Profile Dimension
+
+**Why it exists:** Candidate attributes such as seniority, years of experience, and geographic location directly impact hiring outcomes. This dimension enables profiling candidates to define ideal recruitment targets.
+
+**Business requirements:** R3 — Candidate Profile Analysis, R4 — Geographic Analysis
+
+**Attributes:**
+- `candidate_key` — Surrogate key
+- `first_name`, `last_name`, `email` — Candidate identification
+- `country` — Country of origin
+- `yoe` — Years of experience (numeric)
+- `seniority` — Seniority level (Trainee, Intern, Junior, Mid-Level, Senior, Lead, Architect)
+
+**How it is used:**
+- Analyze hiring rates by seniority level to identify which levels get hired most often
+- Segment candidates by years of experience (0–4, 5–9, 10–19, 20+) and compare outcomes
+- Identify top countries by recruitment activity and hiring success
+- Define ideal candidate profiles for targeted recruitment campaigns
+- Example queries: "Do Senior candidates have higher hiring rates than Juniors?" and "Which countries generate the most hires?"
+
+#### dim_assessment — Assessment Dimension
+
+**Why it exists:** Candidates are evaluated through two technical assessments: Code Challenge and Technical Interview. Understanding the relationship between these scores helps optimize the assessment design and identify bottlenecks in the evaluation process.
+
+**Business requirement:** R5 — Assessment Performance Analysis
+
+**Attributes:**
+- `assessment_key` — Surrogate key
+- `code_challenge_score` — Score on the code challenge (0–10)
+- `technical_interview_score` — Score on the technical interview (0–10)
+
+**How it is used:**
+- Analyze the distribution of score combinations across all applications
+- Identify whether candidates who excel in one assessment also excel in the other
+- Detect if one assessment is a bottleneck (e.g., many candidates fail the code challenge but pass the interview)
+- Validate the hiring threshold (both scores >= 7) against actual outcomes
+- Example query: "What is the correlation between Code Challenge and Technical Interview scores?"
+
 ### Fact Table
 
 | Measure | Meaning | Source/Calculation | Requirements Supported |

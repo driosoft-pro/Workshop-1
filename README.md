@@ -263,7 +263,10 @@ workshop-1/
 │
 ├── scripts/
 │   ├── export_results.sh              # Export analytical queries to CSV (Linux/macOS)
-│   └── export_results.bat             # Export analytical queries to CSV (Windows)
+│   ├── export_results.bat             # Export analytical queries to CSV (Windows)
+│   └── generate_dashboard.py          # Generate Power BI dashboard (.pbix)
+│
+├── dashboard_recruitment.pbix         # Power BI dashboard (6 pages, R1-R5)
 │
 ├── sql/
 │   ├── create_tables.sql              # DW schema (4 dims + 1 fact)
@@ -280,6 +283,10 @@ workshop-1/
 │   ├── R3_candidate_profile.csv
 │   ├── R4_geographic_analysis.csv
 │   └── R5_assessment_analysis.csv
+│
+├── docs/
+│   ├── DASHBOARD_PLAN.md              # Dashboard design plan
+│   └── ETL_2026-2_Workshop-1.pdf      # Workshop specification
 │
 └── docs/
     └── ETL_2026-2_Workshop-1.pdf      # Workshop specification

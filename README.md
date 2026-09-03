@@ -563,6 +563,78 @@ Create a new PostgreSQL connection with the following settings:
 
 > If you changed environment variables in a `.env` file, use those values instead.
 
+### Connecting Power BI (Windows VM) to PostgreSQL (Linux Host)
+
+If you are running Power BI Desktop on a Windows virtual machine and PostgreSQL is running on a Linux host, follow these steps to establish the connection.
+
+#### Prerequisites
+
+- Power BI Desktop installed on the Windows VM
+- PostgreSQL running on the Linux host (via Podman/Docker)
+- Network connectivity between the VM and the Linux host
+
+#### Step 1: Find the Linux Host IP Address
+
+On the Linux host, run:
+
+```bash
+ip addr show virbr0 2>/dev/null || ip addr show | grep "inet " | grep -v 127.0.0.1
+```
+
+The default libvirt/virbr0 network IP is typically `192.168.122.1`.
+
+#### Step 2: Configure the Connection in Power BI
+
+1. Open **Power BI Desktop** on the Windows VM
+2. Click **Get Data** → **More...**
+3. Select **PostgreSQL database** and click **Connect**
+4. Enter the connection settings:
+
+| Setting | Value |
+|---------|-------|
+| **Server** | `<LINUX_HOST_IP>:5432` (e.g., `192.168.122.1:5432`) |
+| **Database** | `recruitment_dw` |
+| **Data Connectivity mode** | `Import` (recommended for development) or `DirectQuery` |
+
+5. Click **OK**
+
+#### Step 3: Authenticate
+
+In the authentication dialog:
+
+| Tab | Setting | Value |
+|-----|---------|-------|
+| **Database** | Username | `recruitment` |
+| **Database** | Password | `recruitment123` |
+
+6. Click **Connect**
+
+#### Step 4: Handle SSL/Certificate Warnings
+
+If Windows prompts to install the Npgsql connector or reports missing SSL certificates:
+
+- Accept the warning for unencrypted connection on the internal virtual network
+- This is safe for local/development environments
+
+#### Step 5: Select Tables
+
+1. In the Navigator, expand the `public` schema
+2. Select the tables you want to import (e.g., `fact_applications`, `dim_date`, `dim_technology`, `dim_candidate`, `dim_assessment`)
+3. Click **Load** or **Transform Data** if you need to clean the data first
+
+#### Connection Summary
+
+| Component | Value |
+|-----------|-------|
+| **Server IP** | `192.168.122.1` (default virbr0) or your host IP |
+| **Port** | `5432` |
+| **Database** | `recruitment_dw` |
+| **Username** | `recruitment` |
+| **Password** | `recruitment123` |
+| **SSL Mode** | `Prefer` or `Disable` (for local VMs) |
+
+> **Note:** If the connection fails, ensure the PostgreSQL container is bound to `0.0.0.0:5432` (not just `127.0.0.1:5432`) so it accepts external connections. The `docker-compose.yml` in this project already configures this correctly.
+
 ---
 
 ## Data Flow Diagram

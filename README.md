@@ -184,8 +184,11 @@ workshop-1/
 │   ├── transform.py                   # Phase 2: Clean + business rules
 │   ├── dimensional_model.py           # Phase 3: Create Star Schema
 │   ├── load.py                        # Phase 4: Load to Data Warehouse
-│   ├── main.py                        # Orchestrator (runs all phases)
-│   └── export_results.sh              # Export analytical queries to CSV
+│   └── main.py                        # Orchestrator (runs all phases)
+│
+├── scripts/
+│   ├── export_results.sh              # Export analytical queries to CSV (Linux/macOS)
+│   └── export_results.bat             # Export analytical queries to CSV (Windows)
 │
 ├── sql/
 │   ├── create_tables.sql              # DW schema (4 dims + 1 fact)
@@ -295,15 +298,21 @@ EXTRACT → TRANSFORM → DIMENSIONAL MODEL → LOAD → VALIDATE
 
 Each phase prints status messages with `[EXTRACT]`, `[TRANSFORM]`, `[DIM]`, `[FACT]`, `[LOAD]`, `[VALIDATE]` prefixes.
 
-### `src/export_results.sh` — Results Exporter
+### `scripts/export_results.sh` / `scripts/export_results.bat` — Results Exporter
 
-Executes all 5 analytical queries and exports results to CSV files in `results/`:
+Executes all 5 analytical queries and exports results to CSV files in `results/`.
 
+**Linux/macOS:**
 ```bash
-src/export_results.sh
+scripts/export_results.sh
 ```
 
-Requires `psql` to be available (automatically available inside `nix develop`). Each query result is saved as a separate CSV file: `R1_hiring_trends.csv` through `R5_assessment_analysis.csv`.
+**Windows:**
+```cmd
+scripts\export_results.bat
+```
+
+Requires `psql` to be available (automatically available inside `nix develop` on Linux, or install PostgreSQL on Windows). Each query result is saved as a separate CSV file: `R1_hiring_trends.csv` through `R5_assessment_analysis.csv`.
 
 ### `sql/create_tables.sql` — Schema Definition
 
@@ -499,10 +508,16 @@ When you run the ETL pipeline, you should see the following output:
 
 ### Exporting Analytical Results
 
-After running the ETL pipeline, export the analytical query results to CSV:
+After running the ETL pipeline, export the analytical query results to CSV.
 
+**Linux/macOS:**
 ```bash
-src/export_results.sh
+scripts/export_results.sh
+```
+
+**Windows:**
+```cmd
+scripts\export_results.bat
 ```
 
 Expected output:

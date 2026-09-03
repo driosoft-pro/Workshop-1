@@ -878,41 +878,38 @@ ORDER BY a.code_challenge_score, a.technical_interview_score;
 
 The Power BI dashboard (`docs/recrutmentAnalytics.pbix`) contains 6 pages covering all business requirements. Below are the dashboard screenshots:
 
-### Overview — Recruitment Analytics Dashboard
+###  Recruitment Analytics Dashboard
 
-![Overview Dashboard](visualizations/overview_dashboard.png)
-
-### Overview — Recruitment Breakdown
-
-![Overview Recruitment](visualizations/overview_recruitment.png)
-
-### R1 — Hiring Trends
-
-![R1 Hiring Trends](visualizations/R1_hiring_trends.png)
-
-### R2 — Technology Analysis
-
-![R2 Technology Analysis](visualizations/R2_technology_analysis.png)
-
-### R3 — Candidate Profile
-
-![R3 Candidate Profile](visualizations/R3_candidate_profile.png)
-
-### R4 — Geographic Analysis
-
-![R4 Geographic Analysis](visualizations/R4_geographic_analysis.png)
-
-### R5 — Assessment Analysis
-
-![R5 Assessment Analysis](visualizations/R5_assessment_analysis.png)
+![Overview Recruitment](visualizations/overview_dashboard.png)
 
 ### Filtered View Example
 
-![Filtered Dashboard](visualizations/overview_filtered.png)
+![Summary Dashboard](visualizations/overview_filtered.png)
 
-### Summary View
+### Overview
 
-![Summary Dashboard](visualizations/overview_summary.png)
+![R1 Hiring Trends](visualizations/overview_recruitment.png)
+
+### R1 — Hiring Trends
+
+![R2 Technology Analysis](visualizations/R1_hiring_trends.png)
+
+### R2 — Technology Analysis
+
+![R3 Candidate Profile](visualizations/R2_technology_analysis.png)
+
+### R3 — Candidate Profile
+
+![R4 Geographic Analysis](visualizations/R3_candidate_profile.png)
+
+### R4 — Geographic Analysis
+
+![R5 Assessment Analysis](visualizations/R4_geographic_analysis.png)
+
+### R5 — Assessment Analysis
+
+![Filtered Dashboard](visualizations/R5_assessment_analysis.png)
+
 
 ---
 

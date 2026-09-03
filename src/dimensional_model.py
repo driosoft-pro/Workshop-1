@@ -158,14 +158,19 @@ def create_fact_applications(
             "candidate_key",
             "assessment_key",
             "is_hired",
-            "code_challenge_score",
-            "technical_interview_score",
+            "Code Challenge Score",
+            "Technical Interview Score",
             "application_count",
         ]
     ].copy()
 
-    fact["code_challenge_score"] = df["Code Challenge Score"].values
-    fact["technical_interview_score"] = df["Technical Interview Score"].values
+    fact.rename(
+        columns={
+            "Code Challenge Score": "code_challenge_score",
+            "Technical Interview Score": "technical_interview_score",
+        },
+        inplace=True,
+    )
 
     print(f"[FACT] Created fact_applications: {len(fact):,} rows")
     return fact

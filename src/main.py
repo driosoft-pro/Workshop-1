@@ -2,8 +2,13 @@
 main.py — Orchestrator for the ETL pipeline.
 """
 
+import os
 import sys
 from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -35,7 +40,7 @@ def run_etl(db_url: str = None) -> None:
     Parameters
     ----------
     db_url : str, optional
-        Database connection string. Defaults to SQLite.
+        PostgreSQL connection string. If None, reads from DB_URL environment variable.
     """
     print("=" * 60)
     print("  WORKSHOP 1 — RECRUITMENT DATA WAREHOUSE ETL")
@@ -86,4 +91,5 @@ def run_etl(db_url: str = None) -> None:
 
 
 if __name__ == "__main__":
-    run_etl()
+    db_url = os.environ.get("DB_URL")
+    run_etl(db_url)

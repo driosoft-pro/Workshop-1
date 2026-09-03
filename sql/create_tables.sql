@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS dim_assessment (
 
 -- Fact: Applications
 CREATE TABLE IF NOT EXISTS fact_applications (
-    application_id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    application_id      SERIAL PRIMARY KEY,
     date_key            INTEGER NOT NULL,
     technology_key      INTEGER NOT NULL,
     candidate_key       INTEGER NOT NULL,

@@ -41,6 +41,10 @@ Thumbs.db
 tmp/
 temp/
 
+# Project management files
+plan.md
+actual.md
+
 # Data (keep structure, ignore large files if needed)
 # data/raw/*.csv
 

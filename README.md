@@ -126,6 +126,8 @@ The business process analyzed is **Candidate Recruitment Evaluation** — the ev
 
 ### Star Schema Diagram
 
+![Star Schema](diagrams/star_schema.png)
+
 ```
                             ┌──────────────────┐
                             │    dim_date      │
@@ -165,9 +167,10 @@ workshop-1/
 │
 ├── flake.nix                          # NixOS environment configuration
 ├── .gitignore                         # Git ignored files
+├── .env.example                       # Environment variables template
+├── docker-compose.yml                 # PostgreSQL Docker/Podman setup
 ├── requirements.txt                   # Python dependencies
 ├── README.md                          # This file
-├── plan.md                            # Sprint plan (2 sprints, 4 weeks)
 │
 ├── data/
 │   └── raw/
@@ -181,20 +184,27 @@ workshop-1/
 │   ├── transform.py                   # Phase 2: Clean + business rules
 │   ├── dimensional_model.py           # Phase 3: Create Star Schema
 │   ├── load.py                        # Phase 4: Load to Data Warehouse
-│   └── main.py                        # Orchestrator (runs all phases)
+│   ├── main.py                        # Orchestrator (runs all phases)
+│   └── export_results.sh              # Export analytical queries to CSV
 │
 ├── sql/
 │   ├── create_tables.sql              # DW schema (4 dims + 1 fact)
 │   └── analytical_queries.sql         # Analytical queries R1-R5
 │
-├── database/
-│   └── recruitment_dw.db              # SQLite DW (auto-generated)
+├── database/                          # PostgreSQL data (gitignored)
 │
 ├── diagrams/
 │   └── star_schema.png                # Star Schema diagram
 │
-└── results/
-    └── (query results, exports)
+├── results/                           # Query results (CSV exports)
+│   ├── R1_hiring_trends.csv
+│   ├── R2_technology_analysis.csv
+│   ├── R3_candidate_profile.csv
+│   ├── R4_geographic_analysis.csv
+│   └── R5_assessment_analysis.csv
+│
+└── docs/
+    └── ETL_2026-2_Workshop-1.pdf      # Workshop specification
 ```
 
 ---
@@ -263,7 +273,7 @@ fact["date_key"] = fact["Application Date"].map(date_map)
 ### `src/load.py` — Data Warehouse Loading
 
 **Functions:**
-- `get_engine(db_url)` — Creates SQLAlchemy engine (PostgreSQL or SQLite fallback)
+- `get_engine(db_url)` — Creates SQLAlchemy engine for PostgreSQL
 - `create_schema(engine)` — Executes `sql/create_tables.sql`
 - `load_dim_*()` — Loads each dimension table
 - `load_fact_applications()` — Loads the fact table
@@ -284,6 +294,16 @@ EXTRACT → TRANSFORM → DIMENSIONAL MODEL → LOAD → VALIDATE
 ```
 
 Each phase prints status messages with `[EXTRACT]`, `[TRANSFORM]`, `[DIM]`, `[FACT]`, `[LOAD]`, `[VALIDATE]` prefixes.
+
+### `src/export_results.sh` — Results Exporter
+
+Executes all 5 analytical queries and exports results to CSV files in `results/`:
+
+```bash
+src/export_results.sh
+```
+
+Requires `psql` to be available (automatically available inside `nix develop`). Each query result is saved as a separate CSV file: `R1_hiring_trends.csv` through `R5_assessment_analysis.csv`.
 
 ### `sql/create_tables.sql` — Schema Definition
 
@@ -319,13 +339,75 @@ Jupyter notebook that performs initial data exploration:
 
 ## Step-by-Step Execution Guide
 
-### Prerequisites
+### Quick Start (Podman)
 
-- **NixOS** with `nix` installed (for `flake.nix`)
-- OR **Python 3.12+** with `pip` (for manual setup)
-- **PostgreSQL** (optional, SQLite fallback available)
+```bash
+# 1. Start PostgreSQL database
+podman-compose up -d
 
-### Option A: NixOS (Recommended)
+# If podman-compose is not installed, use:
+podman run -d \
+  --name recruitment_dw_postgres \
+  -e POSTGRES_DB=recruitment_dw \
+  -e POSTGRES_USER=recruitment \
+  -e POSTGRES_PASSWORD=recruitment123 \
+  -p 5432:5432 \
+  -v postgres_data:/var/lib/postgresql/data \
+  --restart unless-stopped \
+  postgres:16-alpine
+
+# 2. Wait for database to be ready
+podman exec recruitment_dw_postgres pg_isready -U recruitment
+
+# 3. Export database URL
+export DB_URL="postgresql://recruitment:recruitment123@localhost:5432/recruitment_dw"
+
+# 4. Run the ETL pipeline
+python src/main.py
+```
+
+### Full Setup from Scratch
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/driosoft-pro/workshop-1.git
+cd workshop-1
+
+# 2. Create virtual environment and install dependencies
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# 3. Start PostgreSQL with Podman
+podman-compose up -d
+# OR without podman-compose:
+podman run -d \
+  --name recruitment_dw_postgres \
+  -e POSTGRES_DB=recruitment_dw \
+  -e POSTGRES_USER=recruitment \
+  -e POSTGRES_PASSWORD=recruitment123 \
+  -p 5432:5432 \
+  -v postgres_data:/var/lib/postgresql/data \
+  --restart unless-stopped \
+  postgres:16-alpine
+
+# 4. Wait for database to be ready
+podman exec recruitment_dw_postgres pg_isready -U recruitment
+
+# 5. Export database URL
+export DB_URL="postgresql://recruitment:recruitment123@localhost:5432/recruitment_dw"
+
+# 6. Run the ETL pipeline
+python src/main.py
+
+# 7. Run analytical queries
+psql -h localhost -U recruitment -d recruitment_dw -f sql/analytical_queries.sql
+
+# 8. Open Jupyter for data profiling
+jupyter lab
+```
+
+### NixOS Setup
 
 ```bash
 # 1. Clone the repository
@@ -335,54 +417,35 @@ cd workshop-1
 # 2. Enter the Nix development shell
 nix develop
 
-# 3. Run the complete ETL pipeline
+# 3. Start PostgreSQL with Podman
+podman-compose up -d
+# OR without podman-compose:
+podman run -d \
+  --name recruitment_dw_postgres \
+  -e POSTGRES_DB=recruitment_dw \
+  -e POSTGRES_USER=recruitment \
+  -e POSTGRES_PASSWORD=recruitment123 \
+  -p 5432:5432 \
+  -v postgres_data:/var/lib/postgresql/data \
+  --restart unless-stopped \
+  postgres:16-alpine
+
+# 4. Wait for database to be ready
+podman exec recruitment_dw_postgres pg_isready -U recruitment
+
+# 5. Export database URL
+export DB_URL="postgresql://recruitment:recruitment123@localhost:5432/recruitment_dw"
+
+# 6. Run the ETL pipeline
 python src/main.py
 
-# 4. Open Jupyter for data profiling
-jupyter lab
-
-# 5. Open the profiling notebook
-# Navigate to notebooks/data_profiling.ipynb
-```
-
-### Option B: Manual Setup (Any OS)
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/driosoft-pro/workshop-1.git
-cd workshop-1
-
-# 2. Create virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Run the complete ETL pipeline
-python src/main.py
-
-# 5. Open Jupyter for data profiling
+# 7. Open Jupyter for data profiling
 jupyter lab
 ```
 
-### Option C: With PostgreSQL
+### ETL Pipeline Output
 
-```bash
-# 1. Create the database
-createdb recruitment_dw
-
-# 2. Set the connection URL
-export DB_URL="postgresql://user:password@localhost:5432/recruitment_dw"
-
-# 3. Run ETL with PostgreSQL
-python src/main.py
-
-# 4. Run analytical queries
-psql -d recruitment_dw -f sql/analytical_queries.sql
-```
-
-### What Happens When You Run `python src/main.py`
+When you run the ETL pipeline, you should see the following output:
 
 ```
 ============================================================
@@ -391,35 +454,36 @@ psql -d recruitment_dw -f sql/analytical_queries.sql
 
 >>> PHASE 1: EXTRACT
 [EXTRACT] Loaded 50,000 rows from data/raw/candidates.csv
-[EXTRACT] Columns: ['First Name', 'Last Name', 'Email', ...]
+[EXTRACT] Columns: ['First Name', 'Last Name', 'Email', 'Application Date', 'Country', 'YOE', 'Seniority', 'Technology', 'Code Challenge Score', 'Technical Interview Score']
 
 >>> PHASE 2: TRANSFORM
-[TRANSFORM] Prepared 49,950 rows after cleaning
-[TRANSFORM] Applied business rule: 12,500/49,950 hired (25.0%)
+[TRANSFORM] Prepared 50,000 rows after cleaning
+[TRANSFORM] Applied business rule: 6,698/50,000 hired (13.4%)
 
 >>> PHASE 3: DIMENSIONAL MODEL
-[DIM] Created dim_date: 1,500 rows
-[DIM] Created dim_technology: 45 rows
-[DIM] Created dim_candidate: 49,950 rows
-[DIM] Created dim_assessment: 100 rows
-[FACT] Created fact_applications: 49,950 rows
+[DIM] Created dim_date: 1,646 rows
+[DIM] Created dim_technology: 24 rows
+[DIM] Created dim_candidate: 50,000 rows
+[DIM] Created dim_assessment: 121 rows
+[FACT] Created fact_applications: 50,000 rows
 
 >>> PHASE 4: LOAD
-[LOAD] Using SQLite fallback: sqlite:///database/recruitment_dw.db
+[LOAD] Connected to PostgreSQL: localhost:5432/recruitment_dw
 [LOAD] Schema created successfully
-[LOAD] Loaded dim_date: 1,500 rows
-[LOAD] Loaded dim_technology: 45 rows
-[LOAD] Loaded dim_candidate: 49,950 rows
-[LOAD] Loaded dim_assessment: 100 rows
-[LOAD] Loaded fact_applications: 49,950 rows
+[LOAD] Loaded dim_date: 1,646 rows
+[LOAD] Loaded dim_technology: 24 rows
+[LOAD] Loaded dim_candidate: 50,000 rows
+[LOAD] Loaded dim_assessment: 121 rows
+[LOAD] Loaded fact_applications: 50,000 rows
 
 >>> PHASE 5: VALIDATE
+
 [VALIDATE] === Row Counts ===
-  dim_date: 1,500 rows
-  dim_technology: 45 rows
-  dim_candidate: 49,950 rows
-  dim_assessment: 100 rows
-  fact_applications: 49,950 rows
+  dim_date: 1,646 rows
+  dim_technology: 24 rows
+  dim_candidate: 50,000 rows
+  dim_assessment: 121 rows
+  fact_applications: 50,000 rows
 
 [VALIDATE] === Referential Integrity ===
   fact_applications.date_key -> dim_date.date_key: OK
@@ -432,6 +496,72 @@ psql -d recruitment_dw -f sql/analytical_queries.sql
   ETL PIPELINE COMPLETED SUCCESSFULLY
 ============================================================
 ```
+
+### Exporting Analytical Results
+
+After running the ETL pipeline, export the analytical query results to CSV:
+
+```bash
+src/export_results.sh
+```
+
+Expected output:
+
+```
+[EXPORT] R1_hiring_trends
+[EXPORT] R2_technology_analysis
+[EXPORT] R3_candidate_profile
+[EXPORT] R4_geographic_analysis
+[EXPORT] R5_assessment_analysis
+
+[EXPORT] Done. Files saved in results/
+```
+
+Generated files:
+
+| File | Description |
+|------|-------------|
+| `R1_hiring_trends.csv` | Monthly/quarterly hiring trends (2018-2022) |
+| `R2_technology_analysis.csv` | Hiring rates by technology domain |
+| `R3_candidate_profile.csv` | Hiring rates by seniority and experience range |
+| `R4_geographic_analysis.csv` | Top 20 countries by recruitment activity |
+| `R5_assessment_analysis.csv` | Score distribution matrix for both assessments |
+
+### Managing the Database Container
+
+```bash
+# Stop the container
+podman stop recruitment_dw_postgres
+
+# Start the container
+podman start recruitment_dw_postgres
+
+# Remove the container (data persists in volume)
+podman rm recruitment_dw_postgres
+
+# Remove container and volume (deletes all data)
+podman rm -v recruitment_dw_postgres
+
+# Connect to the database
+psql -h localhost -U recruitment -d recruitment_dw
+
+# View container logs
+podman logs recruitment_dw_postgres
+```
+
+### Connecting with DBeaver
+
+Create a new PostgreSQL connection with the following settings:
+
+| Setting | Value |
+|---------|-------|
+| **Host** | `localhost` |
+| **Port** | `5432` |
+| **Database** | `recruitment_dw` |
+| **Username** | `recruitment` |
+| **Password** | `recruitment123` |
+
+> If you changed environment variables in a `.env` file, use those values instead.
 
 ---
 
@@ -469,7 +599,7 @@ psql -d recruitment_dw -f sql/analytical_queries.sql
 ┌─────────────────┐     src/load.py
 │  LOAD           │     - Create schema (SQL)
 │  Data Warehouse │     - Load dimensions first
-│  (SQLite/PG)    │     - Load fact table last
+│  (PostgreSQL)    │     - Load fact table last
 └────────┬────────┘     - Validate integrity
          │
          ▼
@@ -493,8 +623,7 @@ psql -d recruitment_dw -f sql/analytical_queries.sql
 | SQLAlchemy | Database engine and ORM | >= 1.4.0 |
 | psycopg2 | PostgreSQL adapter | >= 2.9.0 |
 | Jupyter | Interactive notebooks for profiling | >= 1.0.0 |
-| SQLite | Default Data Warehouse (fallback) | Built-in |
-| PostgreSQL | Production Data Warehouse | 16 |
+| PostgreSQL | Data Warehouse | 16 |
 | NixOS | Reproducible development environment | 26.05 |
 | uv | Fast Python package manager | Latest |
 | Git | Version control | Latest |

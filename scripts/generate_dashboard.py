@@ -148,12 +148,12 @@ def build():
             x=290, y=20, width=250, height=150, z=1000),
         vis("card", {"measure": "R1_hiring_trends[Hiring Rate]"},
             x=560, y=20, width=250, height=150, z=2000),
-        vis("bar_chart", {
+        vis("clusteredBarChart", {
             "category": {"table": "R2_technology_analysis", "column": "technology_name"},
             "measure": "R2_technology_analysis[Total Applications R2]",
             "sort": "R2_technology_analysis.technology_name",
         }, x=20, y=200, width=500, height=500, z=3000),
-        vis("column_chart", {
+        vis("clusteredColumnChart", {
             "category": {"table": "R1_hiring_trends", "column": "year"},
             "measure": "R1_hiring_trends[Total Applications]",
         }, x=540, y=200, width=500, height=500, z=4000),
@@ -161,11 +161,11 @@ def build():
 
     # Page 2: R1 - Hiring Trends
     builder.add_page("R1 - Hiring Trends", [
-        vis("line_chart", {
+        vis("lineChart", {
             "category": {"table": "R1_hiring_trends", "column": "month_name"},
             "measure": "R1_hiring_trends[Hiring Rate]",
         }, x=20, y=20, width=600, height=350, z=0),
-        vis("column_chart", {
+        vis("clusteredColumnChart", {
             "category": {"table": "R1_hiring_trends", "column": "month_name"},
             "measure": "R1_hiring_trends[Total Applications]",
         }, x=20, y=390, width=600, height=350, z=1000),
@@ -182,7 +182,7 @@ def build():
 
     # Page 3: R2 - Technology Analysis
     builder.add_page("R2 - Technology Analysis", [
-        vis("bar_chart", {
+        vis("clusteredBarChart", {
             "category": {"table": "R2_technology_analysis", "column": "technology_name"},
             "measure": "R2_technology_analysis[Total Hired R2]",
             "sort": "R2_technology_analysis.technology_name",
@@ -199,11 +199,11 @@ def build():
 
     # Page 4: R3 - Candidate Profile
     builder.add_page("R3 - Candidate Profile", [
-        vis("bar_chart", {
+        vis("clusteredBarChart", {
             "category": {"table": "R3_candidate_profile", "column": "seniority"},
             "measure": "R3_candidate_profile[Hiring Rate R3]",
         }, x=20, y=20, width=500, height=350, z=0),
-        vis("column_chart", {
+        vis("clusteredColumnChart", {
             "category": {"table": "R3_candidate_profile", "column": "experience_range"},
             "measure": "R3_candidate_profile[Total Hired R3]",
         }, x=20, y=390, width=500, height=350, z=1000),
@@ -220,7 +220,7 @@ def build():
 
     # Page 5: R4 - Geographic Analysis
     builder.add_page("R4 - Geographic Analysis", [
-        vis("bar_chart", {
+        vis("clusteredBarChart", {
             "category": {"table": "R4_geographic_analysis", "column": "country"},
             "measure": "R4_geographic_analysis[Total Applications R4]",
             "sort": "R4_geographic_analysis.country",
@@ -245,11 +245,11 @@ def build():
                 {"table": "R5_assessment_analysis", "column": "total_hired"},
             ],
         }, x=20, y=20, width=500, height=700, z=0),
-        vis("column_chart", {
+        vis("clusteredColumnChart", {
             "category": {"table": "R5_assessment_analysis", "column": "code_challenge_score"},
             "measure": "R5_assessment_analysis[Total Applications R5]",
         }, x=540, y=20, width=500, height=350, z=1000),
-        vis("column_chart", {
+        vis("clusteredColumnChart", {
             "category": {"table": "R5_assessment_analysis", "column": "code_challenge_score"},
             "measure": "R5_assessment_analysis[Total Hired R5]",
         }, x=540, y=390, width=500, height=350, z=2000),

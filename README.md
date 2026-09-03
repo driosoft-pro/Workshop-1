@@ -203,36 +203,6 @@ The business process analyzed is **Candidate Recruitment Evaluation** — the ev
 
 ![Star Schema](diagrams/star_schema.png)
 
-```
-                            ┌──────────────────┐
-                            │    dim_date      │
-                            ├──────────────────┤
-                            │ date_key (PK)    │
-                            │ full_date        │
-                            │ year             │
-                            │ quarter          │
-                            │ month            │
-                            │ month_name       │
-                            │ day_of_week      │
-                            │ day_of_month     │
-                            └────────┬─────────┘
-                                     │
-┌──────────────────┐    ┌────────────┴─────────────┐    ┌──────────────────┐
-│  dim_technology  │    │    fact_applications     │    │  dim_candidate   │
-├──────────────────┤    ├──────────────────────────┤    ├──────────────────┤
-│ technology_key   │◄───│ date_key (FK)            │───►│ candidate_key    │
-│ technology_name  │    │ technology_key (FK)      │    │ first_name       │
-└──────────────────┘    │ candidate_key (FK)       │    │ last_name        │
-                        │ assessment_key (FK)      │    │ email            │
-┌──────────────────┐    │ is_hired                 │    │ country          │
-│ dim_assessment   │    │ code_challenge_score     │    │ yoe              │
-├──────────────────┤    │ technical_interview_score│    │ seniority        │
-│ assessment_key   │◄───│ application_count        │    └──────────────────┘
-│ code_challenge   │    └──────────────────────────┘
-│ interview_score  │
-└──────────────────┘
-```
-
 ---
 
 ## Project Structure
@@ -266,8 +236,6 @@ workshop-1/
 │   ├── export_results.bat             # Export analytical queries to CSV (Windows)
 │   └── generate_dashboard.py          # Generate Power BI dashboard (.pbix)
 │
-├── dashboard_recruitment.pbix         # Power BI dashboard (6 pages, R1-R5)
-│
 ├── sql/
 │   ├── create_tables.sql              # DW schema (4 dims + 1 fact)
 │   └── analytical_queries.sql         # Analytical queries R1-R5
@@ -284,11 +252,19 @@ workshop-1/
 │   ├── R4_geographic_analysis.csv
 │   └── R5_assessment_analysis.csv
 │
-├── docs/
-│   ├── DASHBOARD_PLAN.md              # Dashboard design plan
-│   └── ETL_2026-2_Workshop-1.pdf      # Workshop specification
+├── visualizations/                    # Power BI dashboard screenshots
+│   ├── overview_dashboard.png         # Main dashboard overview (maps + KPIs)
+│   ├── overview_recruitment.png       # Recruitment overview (tech + year charts)
+│   ├── overview_filtered.png          # Filtered dashboard view
+│   ├── overview_summary.png           # Summary dashboard view
+│   ├── R1_hiring_trends.png           # R1: Hiring trends over time
+│   ├── R2_technology_analysis.png     # R2: Technology analysis
+│   ├── R3_candidate_profile.png       # R3: Candidate profile by seniority/experience
+│   ├── R4_geographic_analysis.png     # R4: Geographic analysis by country
+│   └── R5_assessment_analysis.png     # R5: Assessment score correlation
 │
 └── docs/
+    ├── recrutmentAnalytics.pbix       # Power BI dashboard (6 pages, R1-R5)
     └── ETL_2026-2_Workshop-1.pdf      # Workshop specification
 ```
 
@@ -895,6 +871,48 @@ ORDER BY a.code_challenge_score, a.technical_interview_score;
 | R3 | Yes | fact_applications, dim_candidate | Profile analysis | Experience-seniority correlation found |
 | R4 | Yes | fact_applications, dim_candidate | Geographic analysis | Key recruitment markets identified |
 | R5 | Yes | fact_applications, dim_assessment | Score correlation | Assessment relationship analyzed |
+
+---
+
+## Dashboard Visualizations
+
+The Power BI dashboard (`docs/recrutmentAnalytics.pbix`) contains 6 pages covering all business requirements. Below are the dashboard screenshots:
+
+### Overview — Recruitment Analytics Dashboard
+
+![Overview Dashboard](visualizations/overview_dashboard.png)
+
+### Overview — Recruitment Breakdown
+
+![Overview Recruitment](visualizations/overview_recruitment.png)
+
+### R1 — Hiring Trends
+
+![R1 Hiring Trends](visualizations/R1_hiring_trends.png)
+
+### R2 — Technology Analysis
+
+![R2 Technology Analysis](visualizations/R2_technology_analysis.png)
+
+### R3 — Candidate Profile
+
+![R3 Candidate Profile](visualizations/R3_candidate_profile.png)
+
+### R4 — Geographic Analysis
+
+![R4 Geographic Analysis](visualizations/R4_geographic_analysis.png)
+
+### R5 — Assessment Analysis
+
+![R5 Assessment Analysis](visualizations/R5_assessment_analysis.png)
+
+### Filtered View Example
+
+![Filtered Dashboard](visualizations/overview_filtered.png)
+
+### Summary View
+
+![Summary Dashboard](visualizations/overview_summary.png)
 
 ---
 

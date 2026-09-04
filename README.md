@@ -710,51 +710,184 @@ If Windows prompts to install the Npgsql connector or reports missing SSL certif
 
 ---
 
-## Data Flow Diagram
+## ETL Architecture Diagram
 
 ```
-┌─────────────────┐
-│  data/raw/      │
-│  candidates.csv │   (~50,000 rows, semicolon-delimited)
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐     src/extract.py
-│  EXTRACT        │     pd.read_csv(sep=";")
-│  Raw DataFrame  │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐     src/transform.py
-│  TRANSFORM      │     - Fix data types
-│  Prepared Data  │     - Handle missing values
-│  + Business     │     - Apply is_hired rule
-│    Rules        │     - Create experience_range
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐     src/dimensional_model.py
-│  DIMENSIONAL    │     - Create 4 dimensions
-│  MODEL          │     - Generate surrogate keys
-│  4 Dims + 1     │     - Map keys to fact table
-│  Fact Table     │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐     src/load.py
-│  LOAD           │     - Create schema (SQL)
-│  Data Warehouse │     - Load dimensions first
-│  (PostgreSQL)    │     - Load fact table last
-└────────┬────────┘     - Validate integrity
-         │
-         ▼
-┌─────────────────┐     sql/analytical_queries.sql
-│  ANALYZE        │     - R1: Temporal trends
-│  Business       │     - R2: Technology analysis
-│  Insights       │     - R3: Profile analysis
-│                 │     - R4: Geographic analysis
-│                 │     - R5: Assessment correlation
-└─────────────────┘
+ ┌──────────────────────────────────────────────────────────────────────────────────────────┐
+ │                              FULL ETL ARCHITECTURE                                        │
+ └──────────────────────────────────────────────────────────────────────────────────────────┘
+
+ ┌─────────────┐
+ │   SOURCE    │
+ │  candidates │   ~50,000 rows | semicolon-delimited | UTF-8
+ │    .csv     │   Columns: Name, Email, Date, Country, YOE,
+ │             │   Seniority, Technology, 2x Scores
+ └──────┬──────┘
+        │
+        ▼
+ ╔═══════════════════════════════════════════════════════════════════════╗
+ ║  PHASE 1 — EXTRACT                                  src/extract.py   ║
+ ╠═══════════════════════════════════════════════════════════════════════╣
+ ║  • pd.read_csv(sep=";", encoding="utf-8")                           ║
+ ║  • Validate file exists                                              ║
+ ║  • Output: Raw DataFrame (50,000 rows)                               ║
+ ╚═════════════════════════════╦═════════════════════════════════════════╝
+                               │
+                               ▼
+ ╔═══════════════════════════════════════════════════════════════════════╗
+ ║  PHASE 2 — TRANSFORM                               src/transform.py  ║
+ ╠═══════════════════════════════════════════════════════════════════════╣
+ ║  prepare_data()            apply_business_rules()                    ║
+ ║  ┌─────────────────────┐   ┌────────────────────────────────────┐    ║
+ ║  │ • Fix data types    │   │ • is_hired = (CC>=7 AND TI>=7)    │    ║
+ ║  │ • Strip whitespace  │   │ • experience_range bins            │    ║
+ ║  │ • Remove duplicates │   │   (0-4, 5-9, 10-19, 20+ years)    │    ║
+ ║  │ • Drop null rows    │   │                                    │    ║
+ ║  └─────────────────────┘   └────────────────────────────────────┘    ║
+ ║  Output: Prepared DataFrame (50,000 rows) + is_hired + exp_range     ║
+ ╚═════════════════════════════╦═════════════════════════════════════════╝
+                               │
+                               ▼
+ ╔═══════════════════════════════════════════════════════════════════════╗
+ ║  PHASE 3 — DIMENSIONAL MODEL              src/dimensional_model.py   ║
+ ╠═══════════════════════════════════════════════════════════════════════╣
+ ║                                                                       ║
+ ║  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐   ║
+ ║  │   dim_date      │  │ dim_technology  │  │   dim_candidate     │   ║
+ ║  │ 1,646 rows      │  │ 24 rows         │  │ 50,000 rows         │   ║
+ ║  │ • date_key (PK) │  │ • tech_key (PK) │  │ • candidate_key(PK) │   ║
+ ║  │ • full_date     │  │ • tech_name     │  │ • name, email       │   ║
+ ║  │ • year, quarter │  │                 │  │ • country, yoe      │   ║
+ ║  │ • month, day    │  │                 │  │ • seniority         │   ║
+ ║  └────────┬────────┘  └────────┬────────┘  └──────────┬──────────┘   ║
+ ║           │                    │                       │              ║
+ ║           ▼                    ▼                       ▼              ║
+ ║  ┌─────────────────────────────────────────────────────────────────┐  ║
+ ║  │                    fact_applications                            │  ║
+ ║  │                    50,000 rows                                  │  ║
+ ║  │  • application_id (PK, SERIAL)                                  │  ║
+ ║  │  • date_key (FK) ─────────────► dim_date                       │  ║
+ ║  │  • technology_key (FK) ────────► dim_technology                 │  ║
+ ║  │  • candidate_key (FK) ─────────► dim_candidate                  │  ║
+ ║  │  • assessment_key (FK) ────────► dim_assessment                 │  ║
+ ║  │  • is_hired (measure)                                            │  ║
+ ║  │  • code_challenge_score (measure)                                │  ║
+ ║  │  • technical_interview_score (measure)                           │  ║
+ ║  │  • application_count (measure)                                   │  ║
+ ║  └──────────────────────────────────────┬──────────────────────────┘  ║
+ ║                                         │                            ║
+ ║  ┌─────────────────┐                    │                            ║
+ ║  │ dim_assessment  │                    │                            ║
+ ║  │ 121 rows        │                    │                            ║
+ ║  │ • assess_key(PK)│────────────────────┘                            ║
+ ║  │ • CC score      │                                                 ║
+ ║  │ • TI score      │                                                 ║
+ ║  └─────────────────┘                                                 ║
+ ║  Output: 4 Dimensions + 1 Fact Table (Star Schema)                   ║
+ ╚═════════════════════════════╦═════════════════════════════════════════╝
+                               │
+                               ▼
+ ╔═══════════════════════════════════════════════════════════════════════╗
+ ║  PHASE 4 — LOAD                                    src/load.py       ║
+ ╠═══════════════════════════════════════════════════════════════════════╣
+ ║                                                                       ║
+ ║  ┌─────────────────────────────────────────────────────────────────┐  ║
+ ║  │              PostgreSQL 16 (Docker/Podman)                      │  ║
+ ║  │              recruitment_dw database                            │  ║
+ ║  │                                                                 │  ║
+ ║  │  1. create_schema()    — Execute sql/create_tables.sql          │  ║
+ ║  │  2. load_dim_date()    ─┐                                       │  ║
+ ║  │  3. load_dim_tech()     │ Load dimensions                       │  ║
+ ║  │  4. load_dim_cand()     │ (order matters for FK)                │  ║
+ ║  │  5. load_dim_assess()  ─┘                                       │  ║
+ ║  │  6. load_fact()        ── Load fact table last                  │  ║
+ ║  │  7. validate_load()    ── Check row counts + referential integ. │  ║
+ ║  └─────────────────────────────────────────────────────────────────┘  ║
+ ╚═════════════════════════════╦═════════════════════════════════════════╝
+                               │
+                               ▼
+ ╔═══════════════════════════════════════════════════════════════════════╗
+ ║  PHASE 5 — ANALYZE                     sql/analytical_queries.sql    ║
+ ╠═══════════════════════════════════════════════════════════════════════╣
+ ║                                                                       ║
+ ║  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                ║
+ ║  │  R1          │  │  R2          │  │  R3          │                ║
+ ║  │  Hiring      │  │  Technology  │  │  Candidate   │                ║
+ ║  │  Trends      │  │  Analysis    │  │  Profile     │                ║
+ ║  │  fact+date   │  │  fact+tech   │  │  fact+cand   │                ║
+ ║  └──────────────┘  └──────────────┘  └──────────────┘                ║
+ ║                                                                       ║
+ ║  ┌──────────────┐  ┌──────────────┐                                   ║
+ ║  │  R4          │  │  R5          │                                   ║
+ ║  │  Geographic  │  │  Assessment  │                                   ║
+ ║  │  Analysis    │  │  Analysis    │                                   ║
+ ║  │  fact+cand   │  │  fact+assess │                                   ║
+ ║  └──────────────┘  └──────────────┘                                   ║
+ ║                                                                       ║
+ ║  Output: 5 CSV files → results/R1-R5_*.csv                           ║
+ ╚═════════════════════════════╦═════════════════════════════════════════╝
+                               │
+                               ▼
+ ╔═══════════════════════════════════════════════════════════════════════╗
+ ║  VISUALIZE — POWER BI DASHBOARD              docs/recrutment.pbix    ║
+ ╠═══════════════════════════════════════════════════════════════════════╣
+ ║                                                                       ║
+ ║  Connects to PostgreSQL via host IP (192.168.122.1:5432)              ║
+ ║                                                                       ║
+ ║  ┌─────────────────────────────────────────────────────────────────┐  ║
+ ║  │  6 Dashboard Pages:                                             │  ║
+ ║  │                                                                 │  ║
+ ║  │  [Overview]    Maps + KPIs of global recruitment                │  ║
+ ║  │      │                                                          │  ║
+ ║  │      ▼                                                          │  ║
+ ║  │  [Recruitment]  Technology + Year distribution charts           │  ║
+ ║  │      │                                                          │  ║
+ ║  │      ├──► [R1] Hiring trends over time (2018-2022)             │  ║
+ ║  │      ├──► [R2] Technology hiring rates comparison               │  ║
+ ║  │      ├──► [R3] Profile by seniority and experience              │  ║
+ ║  │      ├──► [R4] Geographic analysis by country (Top 20)          │  ║
+ ║  │      └──► [R5] Score correlation between CC and TI              │  ║
+ ║  │                                                                 │  ║
+ ║  │  [Filtered]    Interactive filters by year, tech, country       │  ║
+ ║  └─────────────────────────────────────────────────────────────────┘  ║
+ ║                                                                       ║
+ ║  Output: recrutmentAnalytics.pbix (6 pages)                          ║
+ ╚═══════════════════════════════════════════════════════════════════════╝
+```
+
+### Components and Files
+
+```
+┌──────────────────────┐     ┌──────────────────────────────────────────┐
+│   CONFIGURATION      │     │   SOURCE                                 │
+│                      │     │                                          │
+│  .env                │     │  data/raw/candidates.csv                 │
+│  .env.example        │     │  (~50,000 rows, semicolon-delimited)     │
+│  docker-compose.yml  │     │                                          │
+│  requirements.txt    │     └────────────────────┬─────────────────────┘
+│  flake.nix           │                          │
+└──────────┬───────────┘                          │
+           │                                      │
+           ▼                                      ▼
+┌──────────────────────┐     ┌──────────────────────────────────────────┐
+│   INFRASTRUCTURE     │     │   ETL PIPELINE (Python)                  │
+│                      │     │                                          │
+│  PostgreSQL 16       │◄────│  src/extract.py      Phase 1: Read CSV   │
+│  (Docker/Podman)     │     │  src/transform.py    Phase 2: Clean+Rules│
+│  Port: 5432          │     │  src/dimensional_model.py  Phase 3: Star │
+│  DB: recruitment_dw  │     │  src/load.py         Phase 4: Load DW    │
+│                      │     │  src/main.py         Orchestrator        │
+└──────────┬───────────┘     └──────────────────────────────────────────┘
+           │
+           ▼
+┌──────────────────────┐     ┌──────────────────────────────────────────┐
+│   ANALYTICS          │     │   VISUALIZATION                          │
+│                      │     │                                          │
+│  sql/create_tables.sql     │  Power BI Desktop (Windows VM)           │
+│  sql/analytical_queries.sql│  docs/recrutmentAnalytics.pbix           │
+│  scripts/export_results.*  │  6 pages: Overview, R1-R5                │
+│  results/R1-R5_*.csv      │  visualizations/*.png (screenshots)      │
+└──────────────────────┘     └──────────────────────────────────────────┘
 ```
 
 ---

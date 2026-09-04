@@ -50,3 +50,8 @@ actual.md
 
 # Results (can be regenerated)
 # results/
+
+# Presentations
+guion*
+GUION*
+*.md.bak

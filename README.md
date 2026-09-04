@@ -714,7 +714,7 @@ If Windows prompts to install the Npgsql connector or reports missing SSL certif
 
 ```
  ┌──────────────────────────────────────────────────────────────────────────────────────────┐
- │                              FULL ETL ARCHITECTURE                                        │
+ │                              FULL ETL ARCHITECTURE                                       │
  └──────────────────────────────────────────────────────────────────────────────────────────┘
 
  ┌─────────────┐
@@ -726,69 +726,69 @@ If Windows prompts to install the Npgsql connector or reports missing SSL certif
         │
         ▼
  ╔═══════════════════════════════════════════════════════════════════════╗
- ║  PHASE 1 — EXTRACT                                  src/extract.py   ║
+ ║  PHASE 1 — EXTRACT                                  src/extract.py    ║
  ╠═══════════════════════════════════════════════════════════════════════╣
- ║  • pd.read_csv(sep=";", encoding="utf-8")                           ║
- ║  • Validate file exists                                              ║
- ║  • Output: Raw DataFrame (50,000 rows)                               ║
+ ║  • pd.read_csv(sep=";", encoding="utf-8")                             ║
+ ║  • Validate file exists                                               ║
+ ║  • Output: Raw DataFrame (50,000 rows)                                ║
  ╚═════════════════════════════╦═════════════════════════════════════════╝
                                │
                                ▼
  ╔═══════════════════════════════════════════════════════════════════════╗
- ║  PHASE 2 — TRANSFORM                               src/transform.py  ║
+ ║  PHASE 2 — TRANSFORM                               src/transform.py   ║
  ╠═══════════════════════════════════════════════════════════════════════╣
- ║  prepare_data()            apply_business_rules()                    ║
- ║  ┌─────────────────────┐   ┌────────────────────────────────────┐    ║
- ║  │ • Fix data types    │   │ • is_hired = (CC>=7 AND TI>=7)    │    ║
- ║  │ • Strip whitespace  │   │ • experience_range bins            │    ║
- ║  │ • Remove duplicates │   │   (0-4, 5-9, 10-19, 20+ years)    │    ║
- ║  │ • Drop null rows    │   │                                    │    ║
- ║  └─────────────────────┘   └────────────────────────────────────┘    ║
- ║  Output: Prepared DataFrame (50,000 rows) + is_hired + exp_range     ║
+ ║  prepare_data()            apply_business_rules()                     ║
+ ║  ┌─────────────────────┐   ┌────────────────────────────────────┐     ║
+ ║  │ • Fix data types    │   │ • is_hired = (CC>=7 AND TI>=7)     │     ║
+ ║  │ • Strip whitespace  │   │ • experience_range bins            │     ║
+ ║  │ • Remove duplicates │   │   (0-4, 5-9, 10-19, 20+ years)     │     ║
+ ║  │ • Drop null rows    │   │                                    │     ║
+ ║  └─────────────────────┘   └────────────────────────────────────┘     ║
+ ║  Output: Prepared DataFrame (50,000 rows) + is_hired + exp_range      ║
  ╚═════════════════════════════╦═════════════════════════════════════════╝
                                │
                                ▼
  ╔═══════════════════════════════════════════════════════════════════════╗
- ║  PHASE 3 — DIMENSIONAL MODEL              src/dimensional_model.py   ║
+ ║  PHASE 3 — DIMENSIONAL MODEL              src/dimensional_model.py    ║
  ╠═══════════════════════════════════════════════════════════════════════╣
  ║                                                                       ║
- ║  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐   ║
- ║  │   dim_date      │  │ dim_technology  │  │   dim_candidate     │   ║
- ║  │ 1,646 rows      │  │ 24 rows         │  │ 50,000 rows         │   ║
- ║  │ • date_key (PK) │  │ • tech_key (PK) │  │ • candidate_key(PK) │   ║
- ║  │ • full_date     │  │ • tech_name     │  │ • name, email       │   ║
- ║  │ • year, quarter │  │                 │  │ • country, yoe      │   ║
- ║  │ • month, day    │  │                 │  │ • seniority         │   ║
- ║  └────────┬────────┘  └────────┬────────┘  └──────────┬──────────┘   ║
+ ║  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐    ║
+ ║  │   dim_date      │  │ dim_technology  │  │   dim_candidate     │    ║
+ ║  │ 1,646 rows      │  │ 24 rows         │  │ 50,000 rows         │    ║
+ ║  │ • date_key (PK) │  │ • tech_key (PK) │  │ • candidate_key(PK) │    ║
+ ║  │ • full_date     │  │ • tech_name     │  │ • name, email       │    ║
+ ║  │ • year, quarter │  │                 │  │ • country, yoe      │    ║
+ ║  │ • month, day    │  │                 │  │ • seniority         │    ║
+ ║  └────────┬────────┘  └────────┬────────┘  └──────────┬──────────┘    ║
  ║           │                    │                       │              ║
  ║           ▼                    ▼                       ▼              ║
  ║  ┌─────────────────────────────────────────────────────────────────┐  ║
  ║  │                    fact_applications                            │  ║
  ║  │                    50,000 rows                                  │  ║
  ║  │  • application_id (PK, SERIAL)                                  │  ║
- ║  │  • date_key (FK) ─────────────► dim_date                       │  ║
+ ║  │  • date_key (FK) ─────────────► dim_date                        │  ║
  ║  │  • technology_key (FK) ────────► dim_technology                 │  ║
  ║  │  • candidate_key (FK) ─────────► dim_candidate                  │  ║
  ║  │  • assessment_key (FK) ────────► dim_assessment                 │  ║
- ║  │  • is_hired (measure)                                            │  ║
- ║  │  • code_challenge_score (measure)                                │  ║
- ║  │  • technical_interview_score (measure)                           │  ║
- ║  │  • application_count (measure)                                   │  ║
+ ║  │  • is_hired (measure)                                           │  ║
+ ║  │  • code_challenge_score (measure)                               │  ║
+ ║  │  • technical_interview_score (measure)                          │  ║
+ ║  │  • application_count (measure)                                  │  ║
  ║  └──────────────────────────────────────┬──────────────────────────┘  ║
- ║                                         │                            ║
- ║  ┌─────────────────┐                    │                            ║
- ║  │ dim_assessment  │                    │                            ║
- ║  │ 121 rows        │                    │                            ║
- ║  │ • assess_key(PK)│────────────────────┘                            ║
- ║  │ • CC score      │                                                 ║
- ║  │ • TI score      │                                                 ║
- ║  └─────────────────┘                                                 ║
- ║  Output: 4 Dimensions + 1 Fact Table (Star Schema)                   ║
+ ║                                         │                             ║
+ ║  ┌─────────────────┐                    │                             ║
+ ║  │ dim_assessment  │                    │                             ║
+ ║  │ 121 rows        │                    │                             ║
+ ║  │ • assess_key(PK)│────────────────────┘                             ║
+ ║  │ • CC score      │                                                  ║
+ ║  │ • TI score      │                                                  ║
+ ║  └─────────────────┘                                                  ║
+ ║  Output: 4 Dimensions + 1 Fact Table (Star Schema)                    ║
  ╚═════════════════════════════╦═════════════════════════════════════════╝
                                │
                                ▼
  ╔═══════════════════════════════════════════════════════════════════════╗
- ║  PHASE 4 — LOAD                                    src/load.py       ║
+ ║  PHASE 4 — LOAD                                    src/load.py        ║
  ╠═══════════════════════════════════════════════════════════════════════╣
  ║                                                                       ║
  ║  ┌─────────────────────────────────────────────────────────────────┐  ║
@@ -807,15 +807,15 @@ If Windows prompts to install the Npgsql connector or reports missing SSL certif
                                │
                                ▼
  ╔═══════════════════════════════════════════════════════════════════════╗
- ║  PHASE 5 — ANALYZE                     sql/analytical_queries.sql    ║
+ ║  PHASE 5 — ANALYZE                     sql/analytical_queries.sql     ║
  ╠═══════════════════════════════════════════════════════════════════════╣
  ║                                                                       ║
- ║  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                ║
- ║  │  R1          │  │  R2          │  │  R3          │                ║
- ║  │  Hiring      │  │  Technology  │  │  Candidate   │                ║
- ║  │  Trends      │  │  Analysis    │  │  Profile     │                ║
- ║  │  fact+date   │  │  fact+tech   │  │  fact+cand   │                ║
- ║  └──────────────┘  └──────────────┘  └──────────────┘                ║
+ ║  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                 ║
+ ║  │  R1          │  │  R2          │  │  R3          │                 ║
+ ║  │  Hiring      │  │  Technology  │  │  Candidate   │                 ║
+ ║  │  Trends      │  │  Analysis    │  │  Profile     │                 ║
+ ║  │  fact+date   │  │  fact+tech   │  │  fact+cand   │                 ║
+ ║  └──────────────┘  └──────────────┘  └──────────────┘                 ║
  ║                                                                       ║
  ║  ┌──────────────┐  ┌──────────────┐                                   ║
  ║  │  R4          │  │  R5          │                                   ║
@@ -824,12 +824,12 @@ If Windows prompts to install the Npgsql connector or reports missing SSL certif
  ║  │  fact+cand   │  │  fact+assess │                                   ║
  ║  └──────────────┘  └──────────────┘                                   ║
  ║                                                                       ║
- ║  Output: 5 CSV files → results/R1-R5_*.csv                           ║
+ ║  Output: 5 CSV files → results/R1-R5_*.csv                            ║
  ╚═════════════════════════════╦═════════════════════════════════════════╝
                                │
                                ▼
  ╔═══════════════════════════════════════════════════════════════════════╗
- ║  VISUALIZE — POWER BI DASHBOARD              docs/recrutment.pbix    ║
+ ║  VISUALIZE — POWER BI DASHBOARD              docs/recrutment.pbix     ║
  ╠═══════════════════════════════════════════════════════════════════════╣
  ║                                                                       ║
  ║  Connects to PostgreSQL via host IP (192.168.122.1:5432)              ║
@@ -842,7 +842,7 @@ If Windows prompts to install the Npgsql connector or reports missing SSL certif
  ║  │      ▼                                                          │  ║
  ║  │  [Recruitment]  Technology + Year distribution charts           │  ║
  ║  │      │                                                          │  ║
- ║  │      ├──► [R1] Hiring trends over time (2018-2022)             │  ║
+ ║  │      ├──► [R1] Hiring trends over time (2018-2022)              │  ║
  ║  │      ├──► [R2] Technology hiring rates comparison               │  ║
  ║  │      ├──► [R3] Profile by seniority and experience              │  ║
  ║  │      ├──► [R4] Geographic analysis by country (Top 20)          │  ║
@@ -851,7 +851,7 @@ If Windows prompts to install the Npgsql connector or reports missing SSL certif
  ║  │  [Filtered]    Interactive filters by year, tech, country       │  ║
  ║  └─────────────────────────────────────────────────────────────────┘  ║
  ║                                                                       ║
- ║  Output: recrutmentAnalytics.pbix (6 pages)                          ║
+ ║  Output: recrutmentAnalytics.pbix (6 pages)                           ║
  ╚═══════════════════════════════════════════════════════════════════════╝
 ```
 
@@ -880,14 +880,14 @@ If Windows prompts to install the Npgsql connector or reports missing SSL certif
 └──────────┬───────────┘     └──────────────────────────────────────────┘
            │
            ▼
-┌──────────────────────┐     ┌──────────────────────────────────────────┐
-│   ANALYTICS          │     │   VISUALIZATION                          │
-│                      │     │                                          │
-│  sql/create_tables.sql     │  Power BI Desktop (Windows VM)           │
-│  sql/analytical_queries.sql│  docs/recrutmentAnalytics.pbix           │
-│  scripts/export_results.*  │  6 pages: Overview, R1-R5                │
-│  results/R1-R5_*.csv      │  visualizations/*.png (screenshots)      │
-└──────────────────────┘     └──────────────────────────────────────────┘
+┌────────────────────────────┐     ┌────────────────────────────────────┐
+│   ANALYTICS                │     │   VISUALIZATION                    │
+│                            │     │                                    │
+│  sql/create_tables.sql     │     │ Power BI Desktop (Windows VM)      │
+│  sql/analytical_queries.sql│     │ docs/recrutmentAnalytics.pbix      │
+│  scripts/export_results.*  │     │ 6 pages: Overview, R1-R5           │
+│  results/R1-R5_*.csv       │     │ visualizations/*.png (screenshots) │
+└────────────────────────────┘     └────────────────────────────────────┘
 ```
 
 ---
